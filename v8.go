@@ -3,6 +3,12 @@ package v8
 /*
 #include <stdlib.h>
 #include "v8wrap.h"
+
+extern char* GoCallback(unsigned int, char*, char*);
+
+extern void wrapper_v8_init() {
+  v8_init(&GoCallback);
+}
 */
 import "C"
 import (
@@ -21,23 +27,25 @@ function {{.name}}() {
   return _go_call({{.id}}, "{{.name}}", JSON.stringify([].slice.call(arguments)));
 }`))
 
-func init() {
-	var f = func(id uint32, n, a *C.char) *C.char {
-		c := contexts[id]
-		f := c.funcs[C.GoString(n)]
-		if f != nil {
-			var argv []interface{}
-			json.Unmarshal([]byte(C.GoString(a)), &argv)
-			ret := f(argv...)
-			if ret != nil {
-				b, _ := json.Marshal(ret)
-				return C.CString(string(b))
-			}
-			return nil
+//export GoCallback
+func GoCallback(id uint32, n, a *C.char) *C.char {
+	c := contexts[id]
+	f := c.funcs[C.GoString(n)]
+	if f != nil {
+		var argv []interface{}
+		json.Unmarshal([]byte(C.GoString(a)), &argv)
+		ret := f(argv...)
+		if ret != nil {
+			b, _ := json.Marshal(ret)
+			return C.CString(string(b))
 		}
-		return C.CString("undefined")
+		return nil
 	}
-	C.v8_init(*(*unsafe.Pointer)(unsafe.Pointer(&f)))
+	return C.CString("undefined")
+}
+
+func init() {
+  C.wrapper_v8_init()
 }
 
 type V8Context struct {

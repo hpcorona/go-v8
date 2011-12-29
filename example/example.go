@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/mattn/go-v8/v8"
+	"github.com/hpcorona/go-v8/v8"
 )
 
 func main() {

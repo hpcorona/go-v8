@@ -73,8 +73,8 @@ private:
 };
 
 void
-v8_init(void *p) {
-  _go_callback = (v8wrap_callback) p;
+v8_init(v8wrap_callback p) {
+  _go_callback = p;
 }
 
 void*
