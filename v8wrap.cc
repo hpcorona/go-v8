@@ -101,12 +101,9 @@ report_exception(v8::TryCatch& try_catch) {
   if (message.IsEmpty()) {
     ss << *exception << std::endl;
   } else {
-    v8::String::Utf8Value filename(message->GetScriptResourceName());
-    const char* filename_string = *filename;
     int linenum = message->GetLineNumber();
     ss
-      << filename_string
-      << ":" << linenum
+      << linenum
       << ": " << *exception << std::endl;
     v8::String::Utf8Value sourceline(message->GetSourceLine());
     ss << *sourceline << std::endl;
@@ -119,11 +116,6 @@ report_exception(v8::TryCatch& try_catch) {
       ss << "^";
     }
     ss << std::endl;
-    v8::String::Utf8Value stack_trace(try_catch.StackTrace());
-    if (stack_trace.length() > 0) {
-      const char* stack_trace_string = *stack_trace;
-      ss << stack_trace_string << std::endl;
-    }
   }
   return ss.str();
 }
@@ -140,12 +132,16 @@ v8_execute(void *ctx, char* source) {
   v8::Handle<v8::Script> script
     = v8::Script::Compile(v8::String::New(source), v8::Undefined());
   if (script.IsEmpty()) {
+    v8::Handle<v8::Value> exteption = try_catch.Exception();
+    v8::String::AsciiValue exception_str(exteption);
     v8::ThrowException(try_catch.Exception());
     context->err(report_exception(try_catch));
     return NULL;
   } else {
     v8::Handle<v8::Value> result = script->Run();
     if (result.IsEmpty()) {
+      v8::Handle<v8::Value> exteption = try_catch.Exception();
+      v8::String::AsciiValue exception_str(exteption);
       v8::ThrowException(try_catch.Exception());
     context->err(report_exception(try_catch));
       return NULL;
