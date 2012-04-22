@@ -3,14 +3,20 @@ package v8
 /*
 #include <stdlib.h>
 #include "v8wrap.h"
+#include "v8go.h"
 
 extern char* GoCallback(unsigned int, char*, char*);
 
-extern void wrapper_v8_init() {
-  v8_init(&GoCallback);
+#ifndef wrapper_v8_init_h
+#define wrapper_v8_init_h
+static void wrapper_v8_init() {
+	v8_init(&GoCallback);
 }
+#endif
 */
+// #cgo LDFLAGS: -L. -lv8wrap -lstdc++
 import "C"
+
 import (
 	"bytes"
 	"encoding/json"
@@ -22,10 +28,7 @@ import (
 
 var contexts = make(map[uint32]*V8Context)
 
-var tmpl = template.Must(template.New("go-v8").Parse(`
-function {{.name}}() {
-  return _go_call({{.id}}, "{{.name}}", JSON.stringify([].slice.call(arguments)));
-}`))
+var tmpl *template.Template
 
 //export GoCallback
 func GoCallback(id uint32, n, a *C.char) *C.char {
@@ -45,6 +48,10 @@ func GoCallback(id uint32, n, a *C.char) *C.char {
 }
 
 func init() {
+ 	tmpl = template.Must(template.New("go-v8").Parse(`
+function {{.Name}}() {
+  return _go_call({{.Id}}, "{{.Name}}", JSON.stringify([].slice.call(arguments)));
+}`))
   C.wrapper_v8_init()
 }
 
@@ -93,8 +100,8 @@ func (v *V8Context) AddFunc(name string, f func(...interface{}) interface{}) err
 	v.funcs[name] = f
 	b := bytes.NewBufferString("")
 	tmpl.Execute(b, map[string]interface{} {
-		"id": v.id,
-		"name": name,
+		"Id": v.id,
+		"Name": name,
 	})
 	_, err := v.Eval(b.String())
 	return err
